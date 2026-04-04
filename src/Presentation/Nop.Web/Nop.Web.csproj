@@ -24,6 +24,7 @@
     <ProjectReference Include="..\..\Libraries\Nop.Data\Nop.Data.csproj" />
     <ProjectReference Include="..\..\Libraries\Nop.Services\Nop.Services.csproj" />
     <ProjectReference Include="..\Nop.Web.Framework\Nop.Web.Framework.csproj" />
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
 
   <ItemGroup>

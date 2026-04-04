@@ -1,19 +1,22 @@
 services:
-    nopcommerce_web:
-        build: .
-        container_name: nopcommerce
-        ports:
-            - "8000:80"
-        depends_on:
-            - nopcommerce_database
-    nopcommerce_database:
-        image: "postgres:latest"
-        container_name: nopcommerce_postgres_server
-        restart: "always"
-        environment:
-          POSTGRES_PASSWORD: "nopCommerce_db_password"
-        ports:
-        - "5433:5432"
+  nopcommerce_web:
+    build: .
+    container_name: nopcommerce
+    ports:
+      - "7000:80"
+    depends_on:
+      - nopcommerce_database
+
+  nopcommerce_database:
+    image: "postgres:16"
+    container_name: nopcommerce_postgres_server
+    restart: "always"
+    environment:
+      POSTGRES_PASSWORD: "nopCommerce_db_password"
+    ports:
+      - "5433:5432"
+    volumes:
+      - nopcommerce_data:/var/lib/postgresql/data
 
 volumes:
-  nopcommerce_data:            
+  nopcommerce_data:

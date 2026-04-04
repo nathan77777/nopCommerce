@@ -102,7 +102,7 @@ public partial class SlugRouteTransformer : DynamicRouteValueTransformer
                 return;
             }
         }
-
+        Console.WriteLine($"Slug '{slug}' is active for entity name '{urlRecord.EntityName}' and entity id '{urlRecord.EntityId}'");
         //since we are here, all is ok with the slug, so process URL
         switch (urlRecord.EntityName)
         {

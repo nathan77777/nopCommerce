@@ -27,7 +27,7 @@ public class ProductApiController : BasePluginController
         _recentlyViewedProductsService = recentlyViewedProductsService;
     }
 
-    [HttpGet]
+    [HttpGet]  // → GET api/products
     public async Task<IActionResult> GetRecentlyViewedProductsAsync()
     {
         Console.WriteLine(">>> GetRecentlyViewedProductsAsync called <<<");

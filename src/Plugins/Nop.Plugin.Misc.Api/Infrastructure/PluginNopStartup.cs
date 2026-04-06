@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Nop.Core.Infrastructure;
+using Nop.Plugin.Misc.Api.Controllers;
 
 public class PluginNopStartup : INopStartup
 {
@@ -11,14 +12,17 @@ public class PluginNopStartup : INopStartup
     {
         Console.WriteLine(">>> PluginNopStartup.ConfigureServices called <<<");
 
-        services.AddMvcCore()
-                .AddApplicationPart(typeof(PluginNopStartup).Assembly);
+        // services.AddMvcCore()
+        //         .AddApplicationPart(typeof(PluginNopStartup).Assembly);
+
+        services.AddMvc()
+                .AddApplicationPart(typeof(ProductApiController).Assembly);
     }
 
     public void Configure(IApplicationBuilder application)
     {
         // Nothing to configure
-    } 
+    }
 
     public int Order => 3000;
 }

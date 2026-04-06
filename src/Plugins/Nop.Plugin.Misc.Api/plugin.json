@@ -1,0 +1,11 @@
+{
+  "Group": "Misc",
+  "FriendlyName": "RestApi",
+  "SystemName": "Misc.Api",
+  "Version": "1.0",
+  "SupportedVersions": [ "5.00" ],
+  "Author": "Nathan",
+  "DisplayOrder": 1,
+  "FileName": "Nop.Plugin.Misc.Api.dll",
+  "Description": "Test pour exposer le l'api REST"
+}

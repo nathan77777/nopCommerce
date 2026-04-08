@@ -13,6 +13,7 @@ public class AutoMapperConfiguration : Profile, IOrderedMapperProfile
     public AutoMapperConfiguration()
     {
         CreateMap<Product, ProductDto>();
+        CreateMap<Product, ProductDetailsDto>();
     }
 
     #endregion
@@ -21,5 +22,5 @@ public class AutoMapperConfiguration : Profile, IOrderedMapperProfile
     /// <summary>
     /// Order of this mapper implementation
     /// </summary>
-    public int Order => 1;
+    public int Order => 100;
 }

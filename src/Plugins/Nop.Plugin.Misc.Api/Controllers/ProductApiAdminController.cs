@@ -1,9 +1,10 @@
 ﻿
 using AutoMapper;
-using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
+using Nop.Core.Infrastructure.Mapper;
 using Nop.Plugin.Misc.Api.DTO;
 using Nop.Services.Catalog;
+using Nop.Web.Areas.Admin.Infrastructure.Mapper.Extensions;
 using Nop.Web.Framework.Controllers;
 
 namespace Nop.Plugin.Misc.Api.Controllers;
@@ -13,12 +14,10 @@ namespace Nop.Plugin.Misc.Api.Controllers;
 public class ProductApiAdminController : BasePluginController
 {
     protected readonly IProductService _productService;
-    protected readonly IMapper _mapper;
 
-    public ProductApiAdminController(IProductService productService, IMapper mapper)
+    public ProductApiAdminController(IProductService productService)
     {
         _productService = productService;
-        _mapper = mapper;
     }
 
     [HttpGet]
@@ -27,14 +26,29 @@ public class ProductApiAdminController : BasePluginController
         try
         {
             var products = await _productService.GetAllProductsDisplayedOnHomepageAsync();
-            var res = products.Select(product => _mapper.Map<ProductDto>(product)).ToList();
+            var res = products.Select(p => AutoMapperConfiguration.Mapper.Map<ProductDto>(p)).ToList();
             return Ok(res);
         }
         catch (Exception e)
         {
-            Console.WriteLine(e);
             return Problem(e.Message);
         }
 
     }
+
+    [HttpGet("{id}")]
+    public async Task<ActionResult<ProductDetailsDto>> GetProductDetailsAsync(int id)
+    {
+        var product = await _productService.GetProductByIdAsync(id);
+        if (product == null)
+        {
+            return NotFound("Product not found with id: " + id);
+        }
+
+        var res = AutoMapperConfiguration.Mapper.Map<ProductDetailsDto>(product);
+        return Ok((res));
+    }
+
+    
+
 }

@@ -14,15 +14,16 @@ public class PluginNopStartup : INopStartup
     {
         Console.WriteLine(">>> PluginNopStartup.ConfigureServices called <<<");
 
-        // services.AddMvcCore()
-        //         .AddApplicationPart(typeof(PluginNopStartup).Assembly);
-        services.AddAutoMapper(typeof(AutoMapperConfiguration).Assembly);
+        services.AddMvcCore()
+                .AddApplicationPart(typeof(PluginNopStartup).Assembly);
+        // services.AddAutoMapper(typeof(AutoMapperConfiguration).Assembly);
 
-        services.AddMvc()
-                .AddApplicationPart(typeof(ProductApiController).Assembly);
-        
-        services.AddMvc()
-            .AddApplicationPart(typeof(ProductApiAdminController).Assembly);
+        //services.AddMvc()
+        //        .AddApplicationPart(typeof(ProductApiController).Assembly);
+
+        //services.AddMvc()
+        //    .AddApplicationPart(typeof(ProductApiAdminController).Assembly);
+
     }
 
     public void Configure(IApplicationBuilder application)

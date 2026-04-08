@@ -5,6 +5,7 @@ using Nop.Core.Domain.Catalog;
 using Nop.Core.Infrastructure.Mapper;
 using Nop.Plugin.Misc.Api.DTO;
 using Nop.Services.Catalog;
+using Nop.Services.Seo;
 using Nop.Web.Areas.Admin.Infrastructure.Mapper.Extensions;
 using Nop.Web.Framework.Controllers;
 
@@ -15,10 +16,14 @@ namespace Nop.Plugin.Misc.Api.Controllers;
 public class ProductApiAdminController : BasePluginController
 {
     protected readonly IProductService _productService;
+    protected readonly IUrlRecordService _urlRecordService;
+    protected readonly ICategoryService _categoryService;
 
-    public ProductApiAdminController(IProductService productService)
+    public ProductApiAdminController(IProductService productService, ICategoryService categoryService, IUrlRecordService urlRecordService)
     {
         _productService = productService;
+        _categoryService = categoryService;
+        _urlRecordService = urlRecordService;
     }
 
     [HttpGet]
@@ -54,23 +59,39 @@ public class ProductApiAdminController : BasePluginController
     [HttpPost]
     public async Task<IActionResult> CreateAsync([FromBody] CreateProductDto model)
     {
-        // 1. Validation (on y reviendra à l'étape suivante)
-        if (!ModelState.IsValid)
-            return BadRequest(ModelState);
+        // 1. Validation DTO
+        if (!ModelState.IsValid) return BadRequest(ModelState);
 
         // 2. Mapping DTO -> Entity
-        // Note : Il faudra ajouter ce mapping dans ton MyPluginMapperProfile
         var product = AutoMapperConfiguration.Mapper.Map<Product>(model);
 
-        // 3. Initialisation des valeurs par défaut obligatoires dans nopCommerce
-        product.CreatedOnUtc = DateTime.UtcNow;
-        product.UpdatedOnUtc = DateTime.UtcNow;
+        // NopCommerce nécessite des valeurs par défaut pour éviter les erreurs SQL
+        product.AdminComment = "Created via REST API";
+        product.ShowOnHomepage = true;
+        product.TaxCategoryId = 1;
 
-        // 4. Appel au service
+        // 3. Insertion du produit (C'est ici qu'il récupère son ID)
         await _productService.InsertProductAsync(product);
 
-        // Attention : ASP.NET Core supprime automatiquement le suffixe "Async" des noms d'actions pour le routing.
-        // Il faut donc utiliser "GetProductDetails" au lieu de nameof(GetProductDetailsAsync).
+        // 4. Liaison des données secondaires (Relations Many-to-Many)
+        if (model.CategoryIds.Count != 0)
+        {
+            foreach (var categoryId in model.CategoryIds)
+            {
+                await _categoryService.InsertProductCategoryAsync(new ProductCategory
+                {
+                    ProductId = product.Id,
+                    CategoryId = categoryId,
+                    IsFeaturedProduct = false,
+                    DisplayOrder = 1
+                });
+            }
+        }
+
+        // 5. Mise à jour des URLs (SEO)
+        await _urlRecordService.SaveSlugAsync(product,
+            await _urlRecordService.GetSeNameAsync(product.Id, product.Name), 0);
+
         return CreatedAtAction("GetProductDetails", new { id = product.Id }, product.Id);
     }
 

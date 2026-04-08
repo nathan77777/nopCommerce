@@ -28,9 +28,37 @@ public class ProductApiController : BasePluginController
     }
 
     [HttpGet]  // → GET api/products
-    public async Task<IActionResult> GetRecentlyViewedProductsAsync()
+    public async Task<ActionResult<IEnumerable<Product>>> GetRecentlyViewedProductsAsync()
     {
-        Console.WriteLine(">>> GetRecentlyViewedProductsAsync called <<<");
-        return Ok("GetRecentlyViewedProductsAsync called");
+        if (!_catalogSettings.RecentlyViewedProductsEnabled)
+            return Content("");
+
+        var products = await _recentlyViewedProductsService.GetRecentlyViewedProductsAsync(_catalogSettings.RecentlyViewedProductsNumber);
+        return Ok(products);
+    }
+
+    [HttpGet("{slug}")]
+    public async Task<IActionResult> GetProductBySlugAsync(string slug)
+    {
+        if (slug == null)
+        {
+            return BadRequest("Product slug cannot be null.");
+        }
+
+        var element = await _urlRecordService.GetBySlugAsync(slug);
+        if (element == null)
+        {
+            return BadRequest("Unknown product");
+        }
+
+        if (!element.IsActive || !element.EntityName.Equals(nameof(Product)))
+        {
+            return BadRequest("The element is either inactive or not a product");
+        }
+
+        var product = _productService.GetProductByIdAsync(element.EntityId);
+        return Ok(product);
+
+
     }
 }

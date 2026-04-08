@@ -14,6 +14,7 @@ public class AutoMapperConfiguration : Profile, IOrderedMapperProfile
     {
         CreateMap<Product, ProductDto>();
         CreateMap<Product, ProductDetailsDto>();
+        CreateMap<CreateProductDto, Product>();
     }
 
     #endregion

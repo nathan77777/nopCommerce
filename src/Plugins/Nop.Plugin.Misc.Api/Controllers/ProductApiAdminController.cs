@@ -1,6 +1,7 @@
 ﻿
 using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
+using Nop.Core.Domain.Catalog;
 using Nop.Core.Infrastructure.Mapper;
 using Nop.Plugin.Misc.Api.DTO;
 using Nop.Services.Catalog;
@@ -37,7 +38,7 @@ public class ProductApiAdminController : BasePluginController
     }
 
     [HttpGet("{id}")]
-    public async Task<ActionResult<ProductDetailsDto>> GetProductDetailsAsync(int id)
+    public async Task<IActionResult> GetProductDetailsAsync(int id)
     {
         var product = await _productService.GetProductByIdAsync(id);
         if (product == null)
@@ -49,6 +50,28 @@ public class ProductApiAdminController : BasePluginController
         return Ok((res));
     }
 
-    
+
+    [HttpPost]
+    public async Task<IActionResult> CreateAsync([FromBody] CreateProductDto model)
+    {
+        // 1. Validation (on y reviendra à l'étape suivante)
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        // 2. Mapping DTO -> Entity
+        // Note : Il faudra ajouter ce mapping dans ton MyPluginMapperProfile
+        var product = AutoMapperConfiguration.Mapper.Map<Product>(model);
+
+        // 3. Initialisation des valeurs par défaut obligatoires dans nopCommerce
+        product.CreatedOnUtc = DateTime.UtcNow;
+        product.UpdatedOnUtc = DateTime.UtcNow;
+
+        // 4. Appel au service
+        await _productService.InsertProductAsync(product);
+
+        // Attention : ASP.NET Core supprime automatiquement le suffixe "Async" des noms d'actions pour le routing.
+        // Il faut donc utiliser "GetProductDetails" au lieu de nameof(GetProductDetailsAsync).
+        return CreatedAtAction("GetProductDetails", new { id = product.Id }, product.Id);
+    }
 
 }

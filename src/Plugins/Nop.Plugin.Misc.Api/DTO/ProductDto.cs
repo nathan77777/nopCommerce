@@ -27,12 +27,7 @@ public class ProductDto
     public decimal Price { get; set; }
 
     /// <summary>
-    /// Gets or sets the old price
+    /// Gets or sets a value indicating whether the entity is published
     /// </summary>
-    public decimal OldPrice { get; set; }
-
-    /// <summary>
-    /// Gets or sets the product cost
-    /// </summary>
-    public decimal ProductCost { get; set; }
+    public bool Published { get; set; }
 }

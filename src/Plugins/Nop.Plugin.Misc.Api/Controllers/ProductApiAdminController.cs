@@ -4,6 +4,7 @@ using Nop.Core.Domain.Catalog;
 using Nop.Core.Infrastructure.Mapper;
 using Nop.Plugin.Misc.Api.DTO;
 using Nop.Services.Catalog;
+using Nop.Services.Logging;
 using Nop.Services.Seo;
 using Nop.Web.Framework.Controllers;
 
@@ -13,22 +14,35 @@ namespace Nop.Plugin.Misc.Api.Controllers;
 [Route("api/admin/products")]
 public class ProductApiAdminController : BasePluginController
 {
+    #region Properties
+
     protected readonly IProductService _productService;
     protected readonly IUrlRecordService _urlRecordService;
     protected readonly ICategoryService _categoryService;
     protected readonly IValidator<CreateProductDto> _validator;
+    protected readonly ICustomerActivityService _customerActivityService;
+
+    #endregion
+
+    #region Ctor
 
     public ProductApiAdminController(
         IProductService productService,
         ICategoryService categoryService,
         IUrlRecordService urlRecordService,
-        IValidator<CreateProductDto> validator)
+        IValidator<CreateProductDto> validator,
+        ICustomerActivityService customerActivityService)
     {
         _productService = productService;
         _categoryService = categoryService;
         _urlRecordService = urlRecordService;
         _validator = validator;
+        _customerActivityService = customerActivityService;
     }
+
+    #endregion
+
+    #region Methods
 
     [HttpGet]
     public async Task<ActionResult<IEnumerable<ProductDto>>> GetAllProductsAsync()
@@ -63,13 +77,11 @@ public class ProductApiAdminController : BasePluginController
     [HttpPost]
     public async Task<IActionResult> CreateAsync([FromBody] CreateProductDto model)
     {
-        // 1. Validation DTO
         if (!ModelState.IsValid) return BadRequest(ModelState);
 
-        // 2. Mapping DTO -> Entity
         var product = AutoMapperConfiguration.Mapper.Map<Product>(model);
 
-        // NopCommerce nécessite des valeurs par défaut pour éviter les erreurs SQL
+        // Default values
         product.AdminComment = "Created via REST API";
         product.ShowOnHomepage = true;
         product.TaxCategoryId = 1;
@@ -77,7 +89,7 @@ public class ProductApiAdminController : BasePluginController
         // 3. Insertion du produit (C'est ici qu'il récupère son ID)
         await _productService.InsertProductAsync(product);
 
-        // 4. Liaison des données secondaires (Relations Many-to-Many)
+        // 4. Liaison des données (Relations Many-to-Many)
         if (model.CategoryIds.Count != 0)
         {
             foreach (var categoryId in model.CategoryIds)
@@ -137,9 +149,21 @@ public class ProductApiAdminController : BasePluginController
     public async Task<IActionResult> DeleteProductAsync(int id)
     {
         var product = await _productService.GetProductByIdAsync(id);
-        if (product == null) return NotFound("Product not found with id: " + id);
-        await _productService.DeleteProductAsync(product);
+        if (product == null)
+            return NotFound();
+
+        product.Deleted = true;
+        product.Published = false;
+        product.UpdatedOnUtc = DateTime.UtcNow;
+
+        await _productService.UpdateProductAsync(product);
+
+        // Log who did the action
+        await _customerActivityService.InsertActivityAsync("DeleteProduct", $"Deleted product: {product.Name}", product);
+
         return NoContent();
     }
+
+    #endregion
 
 }

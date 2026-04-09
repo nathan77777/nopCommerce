@@ -1,12 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using Microsoft.AspNetCore.Mvc;
 
 namespace Nop.Plugin.Misc.Api.DTO;
 
 public class CreateProductDto
 {
-    public int? ProductId { get; set; } = null;
+    public int? ProductId { get; set; }
     public string Name { get; set; }
     public string ShortDescription { get; set; }
     public string FullDescription { get; set; }

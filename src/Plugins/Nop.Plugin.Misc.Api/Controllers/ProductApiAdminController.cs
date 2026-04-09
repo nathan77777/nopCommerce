@@ -1,12 +1,10 @@
-﻿
-using AutoMapper;
+﻿using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 using Nop.Core.Domain.Catalog;
 using Nop.Core.Infrastructure.Mapper;
 using Nop.Plugin.Misc.Api.DTO;
 using Nop.Services.Catalog;
 using Nop.Services.Seo;
-using Nop.Web.Areas.Admin.Infrastructure.Mapper.Extensions;
 using Nop.Web.Framework.Controllers;
 
 namespace Nop.Plugin.Misc.Api.Controllers;
@@ -18,12 +16,18 @@ public class ProductApiAdminController : BasePluginController
     protected readonly IProductService _productService;
     protected readonly IUrlRecordService _urlRecordService;
     protected readonly ICategoryService _categoryService;
+    protected readonly IValidator<CreateProductDto> _validator;
 
-    public ProductApiAdminController(IProductService productService, ICategoryService categoryService, IUrlRecordService urlRecordService)
+    public ProductApiAdminController(
+        IProductService productService,
+        ICategoryService categoryService,
+        IUrlRecordService urlRecordService,
+        IValidator<CreateProductDto> validator)
     {
         _productService = productService;
         _categoryService = categoryService;
         _urlRecordService = urlRecordService;
+        _validator = validator;
     }
 
     [HttpGet]
@@ -93,6 +97,49 @@ public class ProductApiAdminController : BasePluginController
             await _urlRecordService.GetSeNameAsync(product.Id, product.Name), 0);
 
         return CreatedAtAction("GetProductDetails", new { id = product.Id }, product.Id);
+    }
+
+
+    [HttpPut("{id:int}")]
+    public async Task<IActionResult> UpdateProductAsync(int id, [FromBody] CreateProductDto model)
+    {
+        model.ProductId ??= id;
+        var validationResult = await _validator.ValidateAsync(model);
+        if (!validationResult.IsValid)
+        {
+            return BadRequest(validationResult.Errors);
+        }
+
+        var oldProduct = await _productService.GetProductByIdAsync(model.ProductId.Value);
+        if (oldProduct == null) return NotFound("Product not found with id: " + model.ProductId);
+
+        var newProduct = AutoMapperConfiguration.Mapper.Map<Product>(model);
+        await _productService.UpdateProductAsync(newProduct);
+
+        if (model.CategoryIds.Count == 0) return Ok(model);
+
+        foreach (var categoryId in model.CategoryIds)
+        {
+            await _categoryService.UpdateProductCategoryAsync(new ProductCategory
+            {
+                ProductId = newProduct.Id,
+                CategoryId = categoryId,
+                IsFeaturedProduct = false,
+                DisplayOrder = 1
+            });
+        }
+
+        return Ok(model);
+
+    }
+
+    [HttpDelete("{id:int}")]
+    public async Task<IActionResult> DeleteProductAsync(int id)
+    {
+        var product = await _productService.GetProductByIdAsync(id);
+        if (product == null) return NotFound("Product not found with id: " + id);
+        await _productService.DeleteProductAsync(product);
+        return NoContent();
     }
 
 }

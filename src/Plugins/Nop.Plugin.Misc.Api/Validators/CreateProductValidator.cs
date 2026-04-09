@@ -13,13 +13,21 @@ public class CreateProductDtoValidator : AbstractValidator<CreateProductDto>
     {
         _productService = productService;
 
-        RuleFor(x => x.Name).NotEmpty().WithMessage("The name is mandatory.");
-        RuleFor(x => x.Price).GreaterThanOrEqualTo(0).WithMessage("The price cannot be negative.");
-        RuleFor(x => x.Sku).NotEmpty().WithMessage("SKU is required for inventory.");
-        RuleFor(x => x).MustAsync(async (x, cancellation) =>
-        {
-            var existingProduct = await _productService.GetProductBySkuAsync(x.Sku);
-            return existingProduct == null || existingProduct.Id == x.ProductId;
-        }).WithMessage("Sku already used by another product.");
+        RuleFor(x => x.Name)
+            .NotEmpty()
+            .WithMessage("The name is mandatory.");
+        RuleFor(x => x.Price)
+            .GreaterThanOrEqualTo(0)
+            .WithMessage("The price cannot be negative.");
+        RuleFor(x => x.Sku)
+            .NotEmpty()
+            .WithMessage("SKU is required for inventory.")
+            .MustAsync(async (dto, sku, cancellation) =>
+            {
+                var existingProduct = await _productService.GetProductBySkuAsync(sku);
+                Console.WriteLine($"Checking SKU: {sku}, Existing Product ID: {existingProduct?.Id}, DTO Product ID: {dto.ProductId}");
+                return existingProduct == null || existingProduct.Id == dto.ProductId;
+            })
+            .WithMessage("Sku already used by another product.");
     }
 }

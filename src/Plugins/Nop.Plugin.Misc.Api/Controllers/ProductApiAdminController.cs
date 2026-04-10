@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Nop.Core.Domain.Catalog;
 using Nop.Core.Infrastructure.Mapper;
 using Nop.Plugin.Misc.Api.DTO;
+using Nop.Plugin.Misc.Api.Filters;
 using Nop.Services.Catalog;
 using Nop.Services.ExportImport;
 using Nop.Services.Logging;
@@ -14,6 +15,7 @@ using Product = Nop.Core.Domain.Catalog.Product;
 
 namespace Nop.Plugin.Misc.Api.Controllers;
 
+[AdminApiAuthorize]
 [ApiController]
 [Route("api/admin/products")]
 public class ProductApiAdminController : BasePluginController
@@ -28,7 +30,7 @@ public class ProductApiAdminController : BasePluginController
     protected readonly IImportManager _importManager;
     protected readonly IExportManager _exportManager;
 
-    protected int MAX_EXPORT_LIMIT = 5000;     
+    protected int _maxExportLimit = 5000;     
 
     #endregion
 
@@ -203,7 +205,7 @@ public class ProductApiAdminController : BasePluginController
         int limit = 100,
         string filename = null)
     {
-        var finalLimit = Math.Min(limit, MAX_EXPORT_LIMIT);
+        var finalLimit = Math.Min(limit, _maxExportLimit);
         var products = await _productService.SearchProductsAsync(
             categoryIds: categoryId > 0 ? new List<int> { categoryId } : null,
             pageIndex: 0,

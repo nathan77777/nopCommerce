@@ -59,22 +59,55 @@ public class ProductApiAdminController : BasePluginController
     #region Methods
 
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<ProductDto>>> GetAllProductsAsync()
+    public async Task<ActionResult<IEnumerable<ProductDto>>> GetAllProductsAsync(
+        [FromQuery] ProductSearchModelDto model)
     {
         try
         {
-            var products = await _productService.GetAllProductsDisplayedOnHomepageAsync();
+            var products = await _productService.SearchProductsAsync(
+                pageIndex: model.PageIndex,
+                pageSize: model.PageSize,
+                categoryIds: model.CategoryIds,
+                manufacturerIds: model.ManufacturerIds,
+                storeId: model.StoreId,
+                vendorId: model.VendorId,
+                warehouseId: model.WarehouseId,
+                productType: model.ProductType,
+                visibleIndividuallyOnly: model.VisibleIndividuallyOnly,
+                excludeFeaturedProducts: model.ExcludeFeaturedProducts,
+                priceMin: model.PriceMin,
+                priceMax: model.PriceMax,
+                productTagId: model.ProductTagId,
+                keywords: model.Keywords,
+                searchDescriptions: model.SearchDescriptions,
+                searchManufacturerPartNumber: model.SearchManufacturerPartNumber,
+                searchSku: model.SearchSku,
+                searchProductTags: model.SearchProductTags,
+                languageId: model.LanguageId,
+                filteredSpecOptions: model.FilteredSpecOptions,
+                orderBy: model.OrderBy,
+                showHidden: model.ShowHidden,
+                overridePublished: model.OverridePublished
+            );
+
             var res = products.Select(p => AutoMapperConfiguration.Mapper.Map<ProductDto>(p)).ToList();
-            return Ok(res);
+
+            return Ok(new
+            {
+                TotalCount = products.TotalCount,
+                TotalPages = products.TotalPages,
+                HasNextPage = products.HasNextPage,
+                Items = res
+            });
         }
         catch (Exception e)
         {
-            return Problem(e.Message);
+            return StatusCode(500, e.Message);
         }
 
     }
 
-    [HttpGet("{id}")]
+    [HttpGet("{id:int}")]
     public async Task<IActionResult> GetProductDetailsAsync(int id)
     {
         var product = await _productService.GetProductByIdAsync(id);

@@ -1,12 +1,16 @@
-﻿using FluentValidation;
+﻿using DocumentFormat.OpenXml.Math;
+using FluentValidation;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Nop.Core.Domain.Catalog;
 using Nop.Core.Infrastructure.Mapper;
 using Nop.Plugin.Misc.Api.DTO;
 using Nop.Services.Catalog;
+using Nop.Services.ExportImport;
 using Nop.Services.Logging;
 using Nop.Services.Seo;
 using Nop.Web.Framework.Controllers;
+using Product = Nop.Core.Domain.Catalog.Product;
 
 namespace Nop.Plugin.Misc.Api.Controllers;
 
@@ -21,6 +25,10 @@ public class ProductApiAdminController : BasePluginController
     protected readonly ICategoryService _categoryService;
     protected readonly IValidator<CreateProductDto> _validator;
     protected readonly ICustomerActivityService _customerActivityService;
+    protected readonly IImportManager _importManager;
+    protected readonly IExportManager _exportManager;
+
+    protected int MAX_EXPORT_LIMIT = 5000;     
 
     #endregion
 
@@ -31,13 +39,17 @@ public class ProductApiAdminController : BasePluginController
         ICategoryService categoryService,
         IUrlRecordService urlRecordService,
         IValidator<CreateProductDto> validator,
-        ICustomerActivityService customerActivityService)
+        ICustomerActivityService customerActivityService,
+        IImportManager importManager,
+        IExportManager exportManager)
     {
         _productService = productService;
         _categoryService = categoryService;
         _urlRecordService = urlRecordService;
         _validator = validator;
         _customerActivityService = customerActivityService;
+        _importManager = importManager;
+        _exportManager = exportManager;
     }
 
     #endregion
@@ -152,16 +164,57 @@ public class ProductApiAdminController : BasePluginController
         if (product == null)
             return NotFound();
 
-        product.Deleted = true;
-        product.Published = false;
-        product.UpdatedOnUtc = DateTime.UtcNow;
-
-        await _productService.UpdateProductAsync(product);
+        await _productService.DeleteProductAsync(product);
 
         // Log who did the action
         await _customerActivityService.InsertActivityAsync("DeleteProduct", $"Deleted product: {product.Name}", product);
 
         return NoContent();
+    }
+
+
+    [HttpPost("import-excel")]
+    public async Task<IActionResult> ImportProductsFromExcelAsync(IFormFile file)
+    {
+        Console.WriteLine("File received: " + file?.FileName);
+        if (file == null || !file.FileName.EndsWith(".xlsx"))
+            return BadRequest("Please provide a valid Excel file.");
+        
+        try
+        {
+            await using (var stream = file.OpenReadStream())
+            {
+                await _importManager.ImportProductsFromXlsxAsync(stream);
+            }
+            return Ok("Products successfully loaded");
+        }
+        catch (Exception e)
+        {
+            return StatusCode(500, $"Error while importing file: {e.Message}");
+        }
+    }
+
+
+    [HttpGet("export-excel")]
+    public async Task<IActionResult> ExportProductsToExcelAsync(
+        int categoryId = 0,
+        int manufacturerId = 0,
+        string keyword = null,
+        int limit = 100)
+    {
+        var finalLimit = Math.Min(limit, MAX_EXPORT_LIMIT);
+        var products = await _productService.SearchProductsAsync(
+            categoryIds: categoryId > 0 ? new List<int> { categoryId } : null,
+            pageIndex: 0,
+            pageSize: finalLimit,
+            showHidden: true
+        );
+
+        if (!products.Any())
+            return NotFound("No product found for this search");
+
+        var bytes = await _exportManager.ExportProductsToXlsxAsync(products);
+        return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "export.xlsx");
     }
 
     #endregion

@@ -200,7 +200,8 @@ public class ProductApiAdminController : BasePluginController
         int categoryId = 0,
         int manufacturerId = 0,
         string keyword = null,
-        int limit = 100)
+        int limit = 100,
+        string filename = null)
     {
         var finalLimit = Math.Min(limit, MAX_EXPORT_LIMIT);
         var products = await _productService.SearchProductsAsync(
@@ -214,7 +215,8 @@ public class ProductApiAdminController : BasePluginController
             return NotFound("No product found for this search");
 
         var bytes = await _exportManager.ExportProductsToXlsxAsync(products);
-        return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "export.xlsx");
+        var exportFilename = string.IsNullOrEmpty(filename) ? "export.xlsx" : filename + ".xlsx";
+        return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", exportFilename);
     }
 
     #endregion

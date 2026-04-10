@@ -11,15 +11,39 @@ using Nop.Web.Models.Customer;
 
 namespace Nop.Plugin.Misc.Api.Controllers;
 
+/// <summary>
+/// Authenticates and manages API tokens for admin users.
+/// </summary>
 [ApiController]
 [Route("api/admin/auth")]
+[Produces("application/json")]
 public class AuthController : BasePluginController
 {
+    #region Properties
 
+    /// <summary>
+    /// NopCommerce customer service
+    /// </summary>
     protected readonly ICustomerService _customerService;
+    /// <summary>
+    /// NopCommerce customer registration service
+    /// </summary>
     protected readonly ICustomerRegistrationService _customerRegistrationService;
-    protected IStaticCacheManager _staticCacheManager;
+    /// <summary>
+    /// NopCommerce static cache manager
+    /// </summary>
+    protected readonly IStaticCacheManager _staticCacheManager;
 
+    #endregion
+
+    #region Ctor
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="AuthController"/> class.
+    /// </summary>
+    /// <param name="customerService">The customer service</param>
+    /// <param name="customerRegistrationService">The customer registration service</param>
+    /// <param name="staticCacheManager">The static cache manager</param>
     public AuthController(ICustomerService customerService,
         ICustomerRegistrationService customerRegistrationService,
         IStaticCacheManager staticCacheManager)
@@ -29,6 +53,16 @@ public class AuthController : BasePluginController
         _staticCacheManager = staticCacheManager;
     }
 
+    #endregion
+
+
+    #region Methods
+
+    /// <summary>
+    /// Authenticates a user and returns an API token.
+    /// </summary>
+    /// <param name="model">Login credentials model</param>
+    /// <returns>An object containing the token and its expiration information</returns>
     [HttpPost("login")]
     public async Task<IActionResult> LoginAsync([FromBody] LoginModel model)
     {
@@ -53,6 +87,10 @@ public class AuthController : BasePluginController
     }
 
 
+    /// <summary>
+    /// Logs out the current user by invalidating their API token.
+    /// </summary>
+    /// <returns>A message indicating the success of the logout operation</returns>
     [HttpPost("logout")]
     [AdminApiAuthorize]
     public async Task<IActionResult> LogoutAsync()
@@ -67,4 +105,7 @@ public class AuthController : BasePluginController
 
         return Ok(new { message = "Logout successful." });
     }
+
+    #endregion
+
 }

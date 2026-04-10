@@ -15,27 +15,65 @@ using Product = Nop.Core.Domain.Catalog.Product;
 
 namespace Nop.Plugin.Misc.Api.Controllers;
 
+/// <summary>
+/// Manages products in the admin API.
+/// </summary>
 [AdminApiAuthorize]
 [ApiController]
 [Route("api/admin/products")]
+[Produces("application/json")]
 public class ProductApiAdminController : BasePluginController
 {
     #region Properties
 
+    /// <summary>
+    /// NopCommerce product service for managing products, including CRUD operations and product searches.
+    /// </summary>
     protected readonly IProductService _productService;
+    /// <summary>
+    /// NopCommerce URL record service for managing SEO-friendly URLs and slugs for products.
+    /// </summary>
     protected readonly IUrlRecordService _urlRecordService;
+    /// <summary>
+    /// NopCommerce category service for managing product-category relationships and retrieving category information.
+    /// </summary>
     protected readonly ICategoryService _categoryService;
+    /// <summary>
+    /// NopCommerce FluentValidation validator for validating product creation and update models.
+    /// </summary>
     protected readonly IValidator<CreateProductDto> _validator;
+    /// <summary>
+    /// NopCommerce customer activity service for logging admin actions related to products.
+    /// </summary>
     protected readonly ICustomerActivityService _customerActivityService;
+    /// <summary>
+    /// NopCommerce import manager for handling product imports from Excel files.
+    /// </summary>
     protected readonly IImportManager _importManager;
+    /// <summary>
+    /// NopCommerce export manager for handling product exports to Excel files.
+    /// </summary>
     protected readonly IExportManager _exportManager;
 
+    /// <summary>
+    /// Maximum number of products that can be exported at once.
+    /// </summary>
     protected int _maxExportLimit = 5000;     
 
     #endregion
 
     #region Ctor
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ProductApiAdminController"/> class.
+    /// </summary>
+    /// <param name="productService">The product service</param>
+    /// <param name="categoryService">The category service</param>
+    /// <param name="urlRecordService">The URL record service</param>
+    /// <param name="validator">The product validator</param>
+    /// <param name="customerActivityService">The customer activity service</param>
+    /// <param name="importManager">The import manager</param>
+    /// <param name="exportManager">The export manager</param>
     public ProductApiAdminController(
         IProductService productService,
         ICategoryService categoryService,
@@ -58,6 +96,11 @@ public class ProductApiAdminController : BasePluginController
 
     #region Methods
 
+    /// <summary>
+    /// Gets a list of all products based on the search criteria.
+    /// </summary>
+    /// <param name="model">Search model</param>
+    /// <returns>A list of products</returns>
     [HttpGet]
     public async Task<ActionResult<IEnumerable<ProductDto>>> GetAllProductsAsync(
         [FromQuery] ProductSearchModelDto model)
@@ -107,6 +150,11 @@ public class ProductApiAdminController : BasePluginController
 
     }
 
+    /// <summary>
+    /// Gets the details of a specific product by its identifier.
+    /// </summary>
+    /// <param name="id">Product identifier</param>
+    /// <returns>Product details</returns>
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetProductDetailsAsync(int id)
     {
@@ -121,6 +169,11 @@ public class ProductApiAdminController : BasePluginController
     }
 
 
+    /// <summary>
+    /// Creates a new product.
+    /// </summary>
+    /// <param name="model">Product creation model</param>
+    /// <returns>Created product</returns>
     [HttpPost]
     public async Task<IActionResult> CreateAsync([FromBody] CreateProductDto model)
     {
@@ -159,6 +212,12 @@ public class ProductApiAdminController : BasePluginController
     }
 
 
+    /// <summary>
+    /// Updates an existing product.
+    /// </summary>
+    /// <param name="id">Product identifier</param>
+    /// <param name="model">Product update model</param>
+    /// <returns>Updated product</returns>
     [HttpPut("{id:int}")]
     public async Task<IActionResult> UpdateProductAsync(int id, [FromBody] CreateProductDto model)
     {
@@ -192,6 +251,11 @@ public class ProductApiAdminController : BasePluginController
 
     }
 
+    /// <summary>
+    /// Deletes a product by its identifier.
+    /// </summary>
+    /// <param name="id">Product identifier</param>
+    /// <returns>No content on success</returns>
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> DeleteProductAsync(int id)
     {
@@ -208,6 +272,11 @@ public class ProductApiAdminController : BasePluginController
     }
 
 
+    /// <summary>
+    /// Imports products from an Excel file.
+    /// </summary>
+    /// <param name="file">Excel file containing product data</param>
+    /// <returns>Status of the import operation</returns>
     [HttpPost("import-excel")]
     public async Task<IActionResult> ImportProductsFromExcelAsync(IFormFile file)
     {
@@ -230,6 +299,15 @@ public class ProductApiAdminController : BasePluginController
     }
 
 
+    /// <summary>
+    /// Exports products to an Excel file.
+    /// </summary>
+    /// <param name="categoryId">Category identifier to filter by</param>
+    /// <param name="manufacturerId">Manufacturer identifier to filter by</param>
+    /// <param name="keyword">Keyword to search for</param>
+    /// <param name="limit">Maximum number of records to export</param>
+    /// <param name="filename">Name of the exported file</param>
+    /// <returns>Excel file</returns>
     [HttpGet("export-excel")]
     public async Task<IActionResult> ExportProductsToExcelAsync(
         int categoryId = 0,

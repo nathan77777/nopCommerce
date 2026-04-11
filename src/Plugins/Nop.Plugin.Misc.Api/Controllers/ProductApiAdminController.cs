@@ -1,5 +1,4 @@
-﻿using DocumentFormat.OpenXml.Math;
-using FluentValidation;
+﻿using FluentValidation;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Nop.Core.Domain.Catalog;
@@ -10,7 +9,6 @@ using Nop.Services.Catalog;
 using Nop.Services.ExportImport;
 using Nop.Services.Logging;
 using Nop.Services.Seo;
-using Nop.Web.Framework.Controllers;
 using Product = Nop.Core.Domain.Catalog.Product;
 
 namespace Nop.Plugin.Misc.Api.Controllers;

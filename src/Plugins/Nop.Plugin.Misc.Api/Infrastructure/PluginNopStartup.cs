@@ -1,28 +1,21 @@
-﻿using Microsoft.OpenApi;
-using Nop.Services.Catalog;
+﻿using Microsoft.OpenApi.Models;
 
 namespace Nop.Plugin.Misc.Api.Infrastructure;
 
+using System;
+using Controllers;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.OpenApi;
 using Nop.Core.Infrastructure;
-using Controllers;
-using System;
 
-/// <summary>
-/// Startup class for the plugin.
-/// </summary>
 public class PluginNopStartup : INopStartup
 {
-    /// <summary>
-    /// Configures services for the plugin.
-    /// </summary>
-    /// <param name="services">The service collection</param>
-    /// <param name="configuration">The application configuration</param>
     public void ConfigureServices(IServiceCollection services, IConfiguration configuration)
     {
-        Console.WriteLine(">>> PluginNopStartup.ConfigureServices called <<<");
+        Console.WriteLine(">>> API Configuration initialized <<<");
 
         services.AddMvcCore()
                 .AddApplicationPart(typeof(PluginNopStartup).Assembly);
@@ -34,22 +27,60 @@ public class PluginNopStartup : INopStartup
                 Title = "Plugin for NopCommerce Product Management",
                 Version = "v1"
             });
-        });
 
+            options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+            {
+                Description = "Entrez uniquement le token JWT brut (sans 'Bearer '). Swagger ajoutera le préfixe automatiquement.",
+                Name = "Authorization",
+                In = ParameterLocation.Header,
+                Type = SecuritySchemeType.Http,
+                Scheme = "bearer",
+                BearerFormat = "JWT"
+            });
+
+            options.AddSecurityRequirement(new OpenApiSecurityRequirement
+            {
+                {
+                    new OpenApiSecurityScheme
+                    {
+                        Reference = new OpenApiReference
+                        {
+                            Type = ReferenceType.SecurityScheme,
+                            Id   = "Bearer"
+                        }
+                    },
+                    Array.Empty<string>()
+                }
+            });
+        });
     }
 
-    /// <summary>
-    /// Configures the application's request pipeline for the plugin.
-    /// </summary>
-    /// <param name="application">The application builder</param>
     public void Configure(IApplicationBuilder application)
     {
-        application.UseSwagger();
+        application.UseSwagger(options =>
+        {
+            options.RouteTemplate = "swagger/{documentName}/swagger.json";
+        });
+
+        application.Use(async (context, next) =>
+        {
+            var path = context.Request.Path.Value ?? "";
+            if (path.Equals("/swagger", StringComparison.OrdinalIgnoreCase) ||
+                path.Equals("/swagger/", StringComparison.OrdinalIgnoreCase) ||
+                path.Equals("/swagger/html", StringComparison.OrdinalIgnoreCase))
+            {
+                context.Response.Redirect("/swagger/index.html");
+                return;
+            }
+            await next();
+        });
+
         application.UseSwaggerUI(options =>
         {
+            options.RoutePrefix = "swagger";
             options.SwaggerEndpoint("/swagger/v1-product-admin-api/swagger.json", "Mon Plugin API v1");
         });
     }
 
-    public int Order => 3000;
+    public int Order => 10;
 }

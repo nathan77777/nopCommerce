@@ -1,7 +1,10 @@
-﻿using System;
+﻿#nullable enable
+using System;
 using System.Collections.Generic;
 using System.Text;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Http;
 using Nop.Core.Caching;
 using Nop.Core.Domain.Customers;
 using Nop.Plugin.Misc.Api.Filters;
@@ -17,7 +20,7 @@ namespace Nop.Plugin.Misc.Api.Controllers;
 [ApiController]
 [Route("api/admin/auth")]
 [Produces("application/json")]
-public class AuthController : BasePluginController
+public class AuthController : ControllerBase
 {
     #region Properties
 
@@ -55,6 +58,36 @@ public class AuthController : BasePluginController
 
     #endregion
 
+    #region Utilities
+
+    /// <summary>
+    /// Extracts the raw API token from the HTTP context,
+    /// stripping any "Bearer " prefix and surrounding quotes.
+    /// Falls back to the X-Api-Token header if Authorization is absent.
+    /// </summary>
+    /// <param name="httpContext">The current HTTP context</param>
+    /// <returns>The raw token string, or <c>null</c> if none was found</returns>
+    internal static string? ExtractToken(HttpContext httpContext)
+    {
+        const string bearerPrefix = "Bearer ";
+
+        var token = httpContext.Request.Headers.Authorization.ToString().Trim();
+
+        // Strip all "Bearer " prefixes (handles Swagger double-prefix edge case)
+        while (token.StartsWith(bearerPrefix, StringComparison.OrdinalIgnoreCase))
+            token = token[bearerPrefix.Length..].Trim();
+
+        // Remove surrounding quotes if any
+        token = token.Trim('"');
+
+        // Fallback to custom header
+        if (string.IsNullOrWhiteSpace(token))
+            token = httpContext.Request.Headers["X-Api-Token"].ToString().Trim().Trim('"');
+
+        return string.IsNullOrWhiteSpace(token) ? null : token;
+    }
+
+    #endregion
 
     #region Methods
 
@@ -82,10 +115,10 @@ public class AuthController : BasePluginController
         var cacheKey = new CacheKey($"Nop.Plugin.Api.Token-{token}");
         // Store the customer ID in the cache for 120 minutes
         await _staticCacheManager.SetAsync<int?>(cacheKey, customer.Id);
+        Console.WriteLine($">>> API Token generated: {token} <<<");
 
         return Ok(new { Token = token, ExpiresInMinutes = 120 });
     }
-
 
     /// <summary>
     /// Logs out the current user by invalidating their API token.
@@ -95,9 +128,13 @@ public class AuthController : BasePluginController
     [AdminApiAuthorize]
     public async Task<IActionResult> LogoutAsync()
     {
-        var token = HttpContext.Request.Headers.Authorization.ToString().Replace("Bearer ", "");
+        var token = ExtractToken(HttpContext);
 
-        if (string.IsNullOrEmpty(token)) return Ok(new { message = "Logout successful." });
+        Console.WriteLine($">>> API Token invalidated: {token} <<<");
+
+        // Token is absent or already invalid — treat as a successful logout
+        if (string.IsNullOrWhiteSpace(token))
+            return Ok(new { message = "Logout successful." });
 
         // Delete the token from cache
         var cacheKey = new CacheKey($"Nop.Plugin.Api.Token-{token}");
@@ -107,5 +144,4 @@ public class AuthController : BasePluginController
     }
 
     #endregion
-
 }

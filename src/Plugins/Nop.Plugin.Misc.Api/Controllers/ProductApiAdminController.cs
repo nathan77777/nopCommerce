@@ -22,7 +22,7 @@ namespace Nop.Plugin.Misc.Api.Controllers;
 [ApiController]
 [Route("api/admin/products")]
 [Produces("application/json")]
-public class ProductApiAdminController : BasePluginController
+public class ProductApiAdminController : ControllerBase
 {
     #region Properties
 

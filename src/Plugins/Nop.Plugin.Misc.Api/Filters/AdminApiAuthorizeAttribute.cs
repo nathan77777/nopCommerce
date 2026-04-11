@@ -15,6 +15,9 @@ namespace Nop.Plugin.Misc.Api.Filters;
 /// </summary>
 public class AdminApiAuthorizeAttribute : TypeFilterAttribute
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="AdminApiAuthorizeAttribute"/> class.
+    /// </summary>
     public AdminApiAuthorizeAttribute() : base(typeof(AdminApiAuthorizeFilter))
     {
     }
@@ -34,58 +37,27 @@ public class AdminApiAuthorizeAttribute : TypeFilterAttribute
         // AdminApiAuthorizeFilter - OnAuthorizationAsync
         public async Task OnAuthorizationAsync(AuthorizationFilterContext context)
         {
-            var rawHeader = context.HttpContext.Request.Headers.Authorization.ToString();
-            Console.WriteLine($">>> [AdminApiAuthorize] Raw Authorization header: '{rawHeader}'");
-
             var token = AuthController.ExtractToken(context.HttpContext);
-            Console.WriteLine($">>> [AdminApiAuthorize] Extracted token: '{token}'");
 
             if (string.IsNullOrWhiteSpace(token))
             {
-                Console.WriteLine(">>> [AdminApiAuthorize] Token is null/empty → 401");
                 context.Result = new UnauthorizedResult();
                 return;
             }
 
             var cacheKey = new CacheKey($"Nop.Plugin.Api.Token-{token}");
             var customerId = await _staticCacheManager.GetAsync<int?>(cacheKey, () => Task.FromResult<int?>(null));
-            Console.WriteLine($">>> [AdminApiAuthorize] CustomerId from cache: '{customerId}'");
 
             if (!customerId.HasValue)
             {
-                Console.WriteLine(">>> [AdminApiAuthorize] CustomerId not found in cache → 401");
                 context.Result = new UnauthorizedResult();
                 return;
             }
 
             var customer = await _customerService.GetCustomerByIdAsync(customerId.Value);
-            Console.WriteLine($">>> [AdminApiAuthorize] Customer active: {customer?.Active}, Deleted: {customer?.Deleted}");
-
-            if (customer is not { Active: true } || customer.Deleted || !await _customerService.IsAdminAsync(customer))
-            {
-                Console.WriteLine(">>> [AdminApiAuthorize] Customer invalid or not admin → 401");
+            if (customer is not { Active: true } || customer.Deleted || !await _customerService.IsAdminAsync(customer)) 
                 context.Result = new UnauthorizedResult();
-            }
         }
 
-        private static string ExtractToken(HttpContext httpContext)
-        {
-            const string bearerPrefix = "Bearer ";
-
-            var authHeader = httpContext.Request.Headers.Authorization.ToString().Trim();
-
-            // Strip tous les préfixes "Bearer " (cas Swagger double-préfixe)
-            while (authHeader.StartsWith(bearerPrefix, StringComparison.OrdinalIgnoreCase))
-                authHeader = authHeader[bearerPrefix.Length..].Trim();
-
-            // Retire les guillemets éventuels
-            authHeader = authHeader.Trim('"');
-
-            // Fallback sur X-Api-Token
-            if (string.IsNullOrWhiteSpace(authHeader))
-                authHeader = httpContext.Request.Headers["X-Api-Token"].ToString().Trim().Trim('"');
-
-            return authHeader;
-        }
     }
 }

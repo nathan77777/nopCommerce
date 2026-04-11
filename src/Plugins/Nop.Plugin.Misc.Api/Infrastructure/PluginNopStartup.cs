@@ -3,16 +3,21 @@
 namespace Nop.Plugin.Misc.Api.Infrastructure;
 
 using System;
-using Controllers;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.OpenApi;
 using Nop.Core.Infrastructure;
 
+/// <summary>
+/// Plugin startup class for NopCommerce API.
+/// </summary>
 public class PluginNopStartup : INopStartup
 {
+    /// <summary>
+    /// Configures the services for the plugin.
+    /// </summary>
+    /// <param name="services">The service collection.</param>
+    /// <param name="configuration">The configuration.</param>
     public void ConfigureServices(IServiceCollection services, IConfiguration configuration)
     {
         Console.WriteLine(">>> API Configuration initialized <<<");
@@ -30,7 +35,7 @@ public class PluginNopStartup : INopStartup
 
             options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
             {
-                Description = "Entrez uniquement le token JWT brut (sans 'Bearer '). Swagger ajoutera le préfixe automatiquement.",
+                Description = "Enter Raw Token only (without 'Bearer '). Swagger will add the prefix automatically.",
                 Name = "Authorization",
                 In = ParameterLocation.Header,
                 Type = SecuritySchemeType.Http,
@@ -55,6 +60,10 @@ public class PluginNopStartup : INopStartup
         });
     }
 
+    /// <summary>
+    /// Configures the application for the plugin.
+    /// </summary>
+    /// <param name="application">The application builder.</param>
     public void Configure(IApplicationBuilder application)
     {
         application.UseSwagger(options =>
@@ -82,5 +91,8 @@ public class PluginNopStartup : INopStartup
         });
     }
 
+    /// <summary>
+    /// Gets the order of the startup configuration.
+    /// </summary>
     public int Order => 10;
 }

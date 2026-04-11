@@ -7,5 +7,5 @@
   "Author": "Nathan",
   "DisplayOrder": 1,
   "FileName": "Nop.Plugin.Misc.Api.dll",
-  "Description": "Test pour exposer le l'api REST"
+  "Description": "REST API plugin for Product Management"
 }

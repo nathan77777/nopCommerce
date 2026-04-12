@@ -222,31 +222,41 @@ public class ProductApiAdminController : ControllerBase
         model.ProductId ??= id;
         var validationResult = await _validator.ValidateAsync(model);
         if (!validationResult.IsValid)
-        {
             return BadRequest(validationResult.Errors);
-        }
 
-        var oldProduct = await _productService.GetProductByIdAsync(model.ProductId.Value);
-        if (oldProduct == null) return NotFound("Product not found with id: " + model.ProductId);
+        var existingProduct = await _productService.GetProductByIdAsync(model.ProductId.Value);
+        if (existingProduct == null)
+            return NotFound("Product not found with id: " + model.ProductId);
 
-        var newProduct = AutoMapperConfiguration.Mapper.Map<Product>(model);
-        await _productService.UpdateProductAsync(newProduct);
+        // Map updated fields onto the existing tracked entity to preserve its ID and audit fields
+        AutoMapperConfiguration.Mapper.Map(model, existingProduct);
+        await _productService.UpdateProductAsync(existingProduct);
 
-        if (model.CategoryIds.Count == 0) return Ok(model);
-
-        foreach (var categoryId in model.CategoryIds)
+        // Sync category relationships: delete all existing, then re-insert from the request
+        if (model.CategoryIds.Count > 0)
         {
-            await _categoryService.UpdateProductCategoryAsync(new ProductCategory
+            var existingCategories = await _categoryService.GetProductCategoriesByProductIdAsync(existingProduct.Id, showHidden: true);
+
+            foreach (var existingCategory in existingCategories)
+                await _categoryService.DeleteProductCategoryAsync(existingCategory);
+
+            foreach (var categoryId in model.CategoryIds)
             {
-                ProductId = newProduct.Id,
-                CategoryId = categoryId,
-                IsFeaturedProduct = false,
-                DisplayOrder = 1
-            });
+                await _categoryService.InsertProductCategoryAsync(new ProductCategory
+                {
+                    ProductId = existingProduct.Id,
+                    CategoryId = categoryId,
+                    IsFeaturedProduct = false,
+                    DisplayOrder = 1
+                });
+            }
         }
+
+        // Refresh SEO slug in case the product name changed
+        await _urlRecordService.SaveSlugAsync(existingProduct,
+            await _urlRecordService.GetSeNameAsync(existingProduct.Id, existingProduct.Name), 0);
 
         return Ok(model);
-
     }
 
     /// <summary>

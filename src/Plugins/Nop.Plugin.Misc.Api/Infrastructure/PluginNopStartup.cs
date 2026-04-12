@@ -20,8 +20,6 @@ public class PluginNopStartup : INopStartup
     /// <param name="configuration">The configuration.</param>
     public void ConfigureServices(IServiceCollection services, IConfiguration configuration)
     {
-        Console.WriteLine(">>> API Configuration initialized <<<");
-
         services.AddMvcCore()
                 .AddApplicationPart(typeof(PluginNopStartup).Assembly);
 
@@ -58,6 +56,8 @@ public class PluginNopStartup : INopStartup
                 }
             });
         });
+
+        Console.WriteLine("PluginNopStartup: Services configured.");
     }
 
     /// <summary>
